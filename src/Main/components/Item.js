@@ -20,16 +20,16 @@ export const Item = ({text, isEditable, onEdit, votes, myVote, myVotes, onToggle
     );
 };
 
-// export const memoizeComponent = (Component, propNames) => {
-//     let memo = {};
-//     return (props) => {
-//         const useMemoized = propNames.find(propName => props[propName] !== memo[propName]) !== undefined;
-//
-//         if (useMemoized) {
-//             memo = <Component {...props}/>;
-//         }
-//         return memo;
-//     }
-// };
-//
-// const MemoizedItem = memoizeComponent(Item, ['text', 'isEditable', 'votes']);
+export const memoizeComponent = (Component, propNames) => {
+    let memo = {};
+    return (props) => {
+        const useMemoized = propNames.find(propName => props[propName] !== memo[propName]) !== undefined;
+
+        if (useMemoized) {
+            memo = <Component {...props}/>;
+        }
+        return memo;
+    }
+};
+
+const MemoizedItem = memoizeComponent(Item, ['text', 'isEditable', 'votes']);
