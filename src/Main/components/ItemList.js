@@ -2,7 +2,7 @@ import * as React from 'react';
 import {connect} from 'react-redux';
 import {editItem, toggleVote} from '../redux/actions';
 import {has, not, or} from '../../utils';
-import {Item} from './Item';
+import Item from './Item';
 
 
 const mapStateToProps = ({main: state}) => ({

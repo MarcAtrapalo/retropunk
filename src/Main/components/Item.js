@@ -33,3 +33,5 @@ export const memoizeComponent = (Component, propNames) => {
 };
 
 const MemoizedItem = memoizeComponent(Item, ['text', 'isEditable', 'votes']);
+
+export default MemoizedItem;
