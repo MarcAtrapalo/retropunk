@@ -5,26 +5,16 @@ import {connect} from 'react-redux';
 import {negativeItemsSelector, positiveItemsSelector} from '../redux/reducer';
 
 
-const listSelector = (listFromFirebase) => {
-    return Object.keys(listFromFirebase).reduce((list, itemId) => {
-        const newItem = itemId !== 'length'
-            ? {...listFromFirebase[itemId], id: itemId}
-            : null;
-        return [...list, newItem];
-    }, [])
-        .filter(i => i !== null);
-};
-
 const mapStateToProps = (state) => ({
-    positiveItems: listSelector(positiveItemsSelector(state)),
-    negativeItems: listSelector(negativeItemsSelector(state)),
+    positiveItems: positiveItemsSelector(state),
+    negativeItems: negativeItemsSelector(state),
 });
 
-const Main = ({positiveItems, negativeItems, editItem, voteItemUp, voteItemDown}) => {
+const Main = ({positiveItems, negativeItems}) => {
     return (
         <div className="Main">
-            <ItemList title="Puntos positivos:" items={positiveItems} editItem={editItem}/>
-            <ItemList title="Puntos a mejorar:" items={negativeItems} editItem={editItem}/>
+            <ItemList title="Puntos positivos:" items={positiveItems} canBeVoted={false}/>
+            <ItemList title="Puntos a mejorar:" items={negativeItems} canBeVoted={true}/>
         </div>
     );
 };

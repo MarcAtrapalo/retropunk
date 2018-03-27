@@ -1,7 +1,8 @@
-import {EDIT_ITEM, TOGGLE_VOTE, UPDATE_MAIN} from './actions';
+import {DOWNVOTE_ITEM, EDIT_ITEM, UPDATE_MAIN, UPVOTE_ITEM} from './actions';
 import {combineReducers} from 'redux';
 import * as _ from 'lodash';
-import {has, not} from '../../utils';
+import {not} from '../../utils';
+import shortid from 'shortid';
 
 const initialState = {
     firebase: {
@@ -9,7 +10,7 @@ const initialState = {
         negativeItems: {},
         users: {},
     },
-    user: 'user2',
+    user: 'user1',
     votedItems: [],
 };
 
@@ -20,17 +21,46 @@ export const voteTypes = {
     THREE: 3,
 };
 
-export const positiveItemsSelector = state => state.main.firebase.positiveItems;
-export const negativeItemsSelector = state => state.main.firebase.negativeItems;
+export const positiveItemsSelector = state => listSelector(state.main.firebase.positiveItems);
+export const negativeItemsSelector = state => listSelector(state.main.firebase.negativeItems);
+export const userSelector = state => state.main.user;
+
+const isVoteOfUser = user => vote => vote.votedBy === user;
+
+const userVotes = user => state => {
+    return negativeItemsSelector(state)
+        .reduce((votes, i) => [...votes, ...listSelector(i.votes)], [])
+        .filter(isVoteOfUser(user));
+};
+
+export const userFreeVotes = user => state => {
+    const votesOfUser = userVotes(user)(state);
+    const hasVoteOfType = voteType => votesOfUser.find(vote => vote.voteType === voteType);
+    return Object.keys(voteTypes).map(k => voteTypes[k])
+        .filter(not(hasVoteOfType));
+};
+
+// const newItem = user => ({
+//     text: '',
+//     user,
+//     votes: [{votedBy: 'userX', voteType: 1}]
+// });
+
+export const userItemVotes = userId => item => listSelector(item.votes).filter(isVoteOfUser(userId));
+export const itemVotesValue = item => listSelector(item.votes).reduce((sum, vote) => sum + vote.voteType, 0);
+
+export const vote = ({voteType, votedBy}) => ({id: shortid.generate(), voteType, votedBy});
+const voteEquals = voteA => voteB =>
+    voteA.voteType === voteB.voteType && voteA.votedBy === voteB.votedBy;
 
 export const item = (state, action) => {
     switch (action.type) {
         case EDIT_ITEM:
             return {...state, text: action.text};
-        case TOGGLE_VOTE:
-            const addedVote = action.previousVote !== action.voteType ? action.voteType : 0;
-            const cancelledVote = action.previousVote ? action.previousVote : 0;
-            return {...state, votes: state.votes + addedVote - cancelledVote};
+        case UPVOTE_ITEM:
+            return {...state, votes: {...state.votes, [action.vote.id]: action.vote}};
+        case DOWNVOTE_ITEM:
+            return {...state, votes: _.filter(state.votes, not(voteEquals(action.vote)))};
         default:
             return state;
     }
@@ -38,7 +68,8 @@ export const item = (state, action) => {
 
 export const items = (state = {}, action) => {
     switch (action.type) {
-        case TOGGLE_VOTE:
+        case UPVOTE_ITEM:
+        case DOWNVOTE_ITEM:
         case EDIT_ITEM:
             const whenItemIdEquals = (id) => (itm, key) => key === id;
             return replace(state, whenItemIdEquals(action.itemId), i => item(state[action.itemId], action));
@@ -74,23 +105,9 @@ export const user = (state = initialState.user, action) => {
     }
 };
 
-export const votedItems = (state = initialState.votedItems, action) => {
-    switch (action.type) {
-        case TOGGLE_VOTE:
-            const otherItems = state.filter(not(has('itemId', action.itemId)));
-            if (action.voteType === action.previousVote) {
-                return otherItems;
-            }
-            return [...otherItems, {itemId: action.itemId, voteType: action.voteType}];
-        default:
-            return state;
-    }
-};
-
 export default combineReducers({
     firebase,
     user,
-    votedItems,
 });
 
 function replace(obj, when, fn) {
@@ -98,4 +115,14 @@ function replace(obj, when, fn) {
         ? fn(value)
         : value
     );
+}
+
+export function listSelector(listFromFirebase) {
+    return Object.keys(listFromFirebase || {}).reduce((list, itemId) => {
+        const newItem = itemId !== 'length'
+            ? {...listFromFirebase[itemId], id: itemId}
+            : null;
+        return [...list, newItem];
+    }, [])
+        .filter(i => i !== null);
 }
